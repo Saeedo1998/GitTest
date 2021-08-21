@@ -12,6 +12,8 @@
                 <h1>
                         Hello
                 </h1>
+
+                <asp:HyperLink ID="HyperLink1" runat="server" NavigateUrl="~/Pages/VideoTest.aspx">Video Test</asp:HyperLink>
         </div>
     </form>
 </body>
