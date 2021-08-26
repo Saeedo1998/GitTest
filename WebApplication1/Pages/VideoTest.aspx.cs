@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.UI;
@@ -43,7 +45,7 @@ namespace WebApplication1.Pages
 
                                 //Begin downloading video
 
-                                DownloadVideo(url, "Test");
+                                DownloadVideoV3(url, "Test");
                         }
                         catch (Exception ex)
                         {
@@ -55,8 +57,92 @@ namespace WebApplication1.Pages
                 {
                         lbError.Text = "";
                 }
+                public void DownloadVideoV3(string url, string fileName)
+                {
 
-                public int DownloadVideo(string url, string fileName)
+                        Uri videoUri = new Uri(url);
+                        string videoID = HttpUtility.ParseQueryString(videoUri.Query).Get("v");
+                        string videoInfoUrl = "http://www.youtube.com/get_video_info?video_id=" + videoID;
+
+
+
+                        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(videoInfoUrl);
+                        HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+
+
+
+                        Stream responseStream = response.GetResponseStream();
+                        StreamReader reader = new StreamReader(responseStream, Encoding.GetEncoding("utf-8"));
+
+
+
+                        string videoInfo = HttpUtility.HtmlDecode(reader.ReadToEnd());
+
+
+
+                        NameValueCollection videoParams = HttpUtility.ParseQueryString(videoInfo);
+
+
+
+                        if (videoParams["reason"] != null)
+                        {
+                                lbError.Text = videoParams["reason"];
+                                return;
+                        }
+
+
+
+                        string[] videoURLs = videoParams["url_encoded_fmt_stream_map"].Split(',');
+
+
+
+                        foreach (string vURL in videoURLs)
+                        {
+                                string sURL = HttpUtility.HtmlDecode(vURL);
+
+
+
+                                NameValueCollection urlParams = HttpUtility.ParseQueryString(sURL);
+                                string videoFormat = HttpUtility.HtmlDecode(urlParams["type"]);
+
+
+
+                                sURL = HttpUtility.HtmlDecode(urlParams["url"]);
+                                sURL += "&signature=" + HttpUtility.HtmlDecode(urlParams["sig"]);
+                                sURL += "&type=" + videoFormat;
+                                sURL += "&title=" + HttpUtility.HtmlDecode(videoParams["title"]);
+
+
+
+                                videoFormat = urlParams["quality"] + " - " + videoFormat.Split(';')[0].Split('/')[1];
+
+
+
+                                //ddlVideoFormats.Items.Add(new ListItem(videoFormat, sURL));
+                        }
+
+
+
+                        //btnProcess.Enabled = false;
+                        //ddlVideoFormats.Visible = true;
+                        //btnDownload.Visible = true;
+                        //lblMessage.Text = string.Empty;
+                }
+                public void DownloadVideoV2(string url, string fileName)
+                {
+                        WebClient req = new WebClient();
+                        HttpResponse response = HttpContext.Current.Response;
+                        response.Clear();
+                        response.ClearContent();
+                        response.ClearHeaders();
+                        response.Buffer = true;
+                        response.AddHeader("Content-Disposition", "attachment;filename=\"" + Server.MapPath(url) + "\"");
+                        byte[] data = req.DownloadData(Server.MapPath(url));
+                        response.BinaryWrite(data);
+                        response.End();
+
+                }
+                public int DownloadVideoV1(string url, string fileName)
                 {
                         int result = 0;
                         //Create a stream for the file
